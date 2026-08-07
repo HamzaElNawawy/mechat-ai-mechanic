@@ -80,8 +80,8 @@ MeChat helps drivers describe vehicle symptoms, checks for immediate danger befo
 ## Quick start
 
 ```bash
-git clone <your-repository-url>
-cd mechanic-chatbot
+git clone https://github.com/HamzaElNawawy/mechat-ai-mechanic.git
+cd mechat-ai-mechanic
 npm run install:all
 ```
 
