@@ -40,20 +40,43 @@ MeChat helps drivers describe vehicle symptoms, checks for immediate danger befo
   </tr>
 </table>
 
-### Emergency triage and location privacy
+### Escalation and nearby mechanic discovery
 
 <table>
   <tr>
     <td width="50%">
-      <img src="docs/screenshots/mechat-emergency-location-consent.png" alt="MeChat emergency fire response with an explicit location-sharing choice" />
+      <img src="docs/screenshots/mechat-professional-referral.png" alt="MeChat recommending professional inspection after guided troubleshooting is exhausted" />
     </td>
     <td width="50%">
-      <img src="docs/screenshots/mechat-location-declined.png" alt="MeChat continuing safely after the user declines location sharing" />
+      <img src="docs/screenshots/mechat-mechanic-results.png" alt="MeChat showing nearby OpenStreetMap repair-shop results" />
     </td>
   </tr>
   <tr>
-    <td align="center"><strong>Server-controlled emergency guidance</strong></td>
-    <td align="center"><strong>Location remains optional</strong></td>
+    <td align="center"><strong>Location offered only after escalation</strong></td>
+    <td align="center"><strong>Nearby repair shops with map links</strong></td>
+  </tr>
+</table>
+
+### Emergency triage and explicit location consent
+
+<p align="center">
+  <img src="docs/screenshots/mechat-emergency-location-consent.png" alt="MeChat emergency fire response with an explicit location-sharing choice" width="100%" />
+</p>
+
+### Multimodal photo analysis
+
+<table>
+  <tr>
+    <td width="50%">
+      <img src="docs/screenshots/mechat-photo-upload.png" alt="MeChat photo preview with a user-written analysis request" />
+    </td>
+    <td width="50%">
+      <img src="docs/screenshots/mechat-photo-analysis.png" alt="MeChat extracting visible dashboard evidence before requesting vehicle details" />
+    </td>
+  </tr>
+  <tr>
+    <td align="center"><strong>Photo preview before submission</strong></td>
+    <td align="center"><strong>Structured visual evidence extraction</strong></td>
   </tr>
 </table>
 
