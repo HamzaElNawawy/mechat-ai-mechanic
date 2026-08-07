@@ -1,0 +1,713 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  color: #e8edf5;
+  background:
+    radial-gradient(ellipse at top left, rgba(255, 138, 61, 0.12), transparent 40%),
+    radial-gradient(ellipse at bottom right, rgba(66, 133, 244, 0.1), transparent 40%),
+    #0c1117;
+  font-family: 'Inter', Segoe UI, system-ui, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+/* ── Layout ─────────────────────────────────────── */
+
+.page-drop-zone {
+  min-height: 100vh;
+}
+
+.app-shell {
+  width: min(920px, calc(100% - 2rem));
+  margin: 0 auto;
+  padding: 1.5rem 0 2rem;
+}
+
+/* ── Header ─────────────────────────────────────── */
+
+.top-bar {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1.25rem;
+  padding: 0 0.25rem;
+}
+
+.top-bar-brand {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  flex-shrink: 0;
+  box-shadow: 0 4px 14px rgba(255, 95, 109, 0.35);
+}
+
+.brand-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.eyebrow {
+  margin: 0 0 0.15rem;
+  color: #ff9a5a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3.5vw, 1.9rem);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: #f0f4ff;
+}
+
+.vehicle-badge {
+  width: fit-content;
+  margin: -0.65rem 0 0.75rem 0.25rem;
+  padding: 0.4rem 0.75rem;
+  border: 1px solid rgba(134, 239, 172, 0.25);
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.1);
+  color: #bbf7d0;
+  font-size: 0.8rem;
+}
+
+.header-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.ghost-button,
+.composer button,
+.mechanic-card a {
+  border-radius: 999px;
+}
+
+.ghost-button {
+  padding: 0.5rem 1rem;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.05);
+  color: #cbd5e1;
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 500;
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.ghost-button:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.25);
+  color: #f0f4ff;
+}
+
+/* ── Chat panel ──────────────────────────────────── */
+
+.chat-panel {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  min-height: calc(100vh - 7.5rem);
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+  border-radius: 24px;
+  overflow: hidden;
+  backdrop-filter: blur(16px);
+  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4), inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+.messages {
+  padding: 1.5rem 1.25rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  scroll-behavior: smooth;
+}
+
+.chat-panel.welcome-mode {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.15rem;
+  padding: 2rem 1rem;
+  border-color: transparent;
+  background: transparent;
+  box-shadow: none;
+  backdrop-filter: none;
+  overflow: visible;
+}
+
+.welcome-mode .messages {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 0;
+  overflow: visible;
+}
+
+.welcome-prompt {
+  text-align: center;
+}
+
+.welcome-prompt h2 {
+  margin: 0;
+  color: #f0f4ff;
+  font-size: clamp(1.75rem, 5vw, 2.65rem);
+  font-weight: 650;
+  letter-spacing: -0.035em;
+}
+
+.welcome-mode .composer {
+  width: min(720px, 100%);
+  margin: 0 auto;
+  padding: 0.8rem;
+  border: 1px solid rgba(255, 255, 255, 0.11);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.055);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+/* ── Message animation ────────────────────────────── */
+
+@keyframes messageIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.message {
+  max-width: 80%;
+  padding: 0.85rem 1.1rem;
+  border-radius: 18px;
+  line-height: 1.6;
+  animation: messageIn 0.28s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.message.user {
+  align-self: flex-end;
+  background: linear-gradient(135deg, #ff8a3d 0%, #ff5f6d 100%);
+  color: #140d08;
+  border-bottom-right-radius: 6px;
+  box-shadow: 0 4px 18px rgba(255, 95, 109, 0.25);
+}
+
+.message.assistant {
+  align-self: flex-start;
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  border-bottom-left-radius: 6px;
+}
+
+.message-label {
+  display: block;
+  margin-bottom: 0.3rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.6;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.message p {
+  margin: 0;
+  white-space: pre-wrap;
+  font-size: 0.95rem;
+}
+
+.message-photo {
+  display: block;
+  width: min(100%, 360px);
+  max-height: 280px;
+  margin: 0.35rem 0 0.65rem;
+  border-radius: 12px;
+  object-fit: cover;
+}
+
+/* ── Typing indicator ─────────────────────────────── */
+
+.typing-indicator {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 0.75rem 1rem;
+}
+
+.typing-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #ff8a3d;
+  opacity: 0.5;
+  animation: typingBounce 1.2s ease-in-out infinite;
+}
+
+.typing-dot:nth-child(2) { animation-delay: 0.15s; }
+.typing-dot:nth-child(3) { animation-delay: 0.3s; }
+
+@keyframes typingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.5; }
+  30% { transform: translateY(-6px); opacity: 1; }
+}
+
+/* ── Mechanic results ─────────────────────────────── */
+
+.mechanic-results {
+  margin-top: 0.75rem;
+  animation: messageIn 0.35s ease both;
+}
+
+.mechanic-results h2 {
+  margin: 0 0 0.85rem;
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #ff9a5a;
+}
+
+.map-attribution {
+  margin: 0.7rem 0 0;
+  color: #94a3b8;
+  font-size: 0.75rem;
+}
+
+.mechanic-grid {
+  display: grid;
+  gap: 0.65rem;
+}
+
+.mechanic-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  padding: 1rem 1.1rem;
+  border-radius: 16px;
+  background: rgba(10, 14, 20, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.mechanic-card:hover {
+  border-color: rgba(255, 138, 61, 0.35);
+  background: rgba(255, 138, 61, 0.05);
+}
+
+.mechanic-card h3 {
+  margin: 0 0 0.3rem;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #f0f4ff;
+}
+
+.mechanic-card p {
+  margin: 0;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.mechanic-card .distance,
+.mechanic-card .phone {
+  margin-top: 0.25rem;
+  font-size: 0.83rem;
+}
+
+.mechanic-card .distance { color: #7dd3fc; }
+.mechanic-card .phone { color: #86efac; }
+
+.mechanic-card a {
+  padding: 0.55rem 1rem;
+  background: linear-gradient(135deg, #ff8a3d, #ff5f6d);
+  color: white;
+  text-decoration: none;
+  white-space: nowrap;
+  font-size: 0.85rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  box-shadow: 0 3px 12px rgba(255, 95, 109, 0.3);
+  transition: opacity 0.2s, transform 0.15s;
+}
+
+.mechanic-card a:hover {
+  opacity: 0.9;
+  transform: translateY(-1px);
+}
+
+/* ── Error banner ─────────────────────────────────── */
+
+.error-banner {
+  margin: 0 1.25rem;
+  padding: 0.8rem 1rem;
+  border-radius: 12px;
+  background: rgba(255, 95, 109, 0.1);
+  border: 1px solid rgba(255, 95, 109, 0.3);
+  font-size: 0.875rem;
+  color: #fca5a5;
+  animation: messageIn 0.2s ease both;
+}
+
+.location-consent {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  align-items: center;
+  margin: 0 1.25rem 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(125, 211, 252, 0.3);
+  border-radius: 14px;
+  background: rgba(14, 116, 144, 0.12);
+}
+
+.vehicle-intake {
+  display: grid;
+  gap: 0.85rem;
+  margin: 0 1.25rem 1rem;
+  padding: 1rem;
+  border: 1px solid rgba(134, 239, 172, 0.28);
+  border-radius: 14px;
+  background: rgba(22, 101, 52, 0.12);
+}
+
+.vehicle-intake p {
+  margin: 0.25rem 0 0;
+  color: #a8b5c7;
+  font-size: 0.82rem;
+}
+
+.vehicle-fields {
+  display: grid;
+  grid-template-columns: minmax(100px, 0.35fr) minmax(190px, 1fr) auto;
+  gap: 0.65rem;
+  align-items: end;
+}
+
+.vehicle-fields label {
+  display: grid;
+  gap: 0.3rem;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+}
+
+.vehicle-fields input {
+  width: 100%;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.05);
+  color: #f0f4ff;
+  font: inherit;
+}
+
+.vehicle-fields button {
+  padding: 0.68rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: #86efac;
+  color: #07150c;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.location-consent p {
+  margin: 0.25rem 0 0;
+  color: #a8b5c7;
+  font-size: 0.82rem;
+}
+
+.consent-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+.consent-actions button {
+  padding: 0.6rem 0.9rem;
+  border: 0;
+  border-radius: 999px;
+  background: #38bdf8;
+  color: #07131a;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.consent-actions .secondary-button {
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: transparent;
+  color: #dce6f4;
+}
+
+/* ── Composer ─────────────────────────────────────── */
+
+.composer {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  background: rgba(0, 0, 0, 0.15);
+  transition: background 0.18s ease, box-shadow 0.18s ease;
+}
+
+.selected-photo {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 0.65rem;
+  align-items: center;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid rgba(125, 211, 252, 0.25);
+  border-radius: 12px;
+  background: rgba(14, 116, 144, 0.1);
+  color: #cbd5e1;
+  font-size: 0.8rem;
+}
+
+.selected-photo img {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+}
+
+.selected-photo span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.selected-photo button {
+  margin-left: auto;
+  border: 0;
+  background: transparent;
+  color: #fca5a5;
+  cursor: pointer;
+}
+
+.photo-upload-button {
+  align-self: end;
+  display: flex;
+  gap: 0.45rem;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  padding: 0.65rem 0.95rem;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 12px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.075), rgba(255, 255, 255, 0.035));
+  color: #d8e2ef;
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    color 0.18s ease,
+    border-color 0.18s ease,
+    background 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.photo-upload-button svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.photo-upload-button:hover {
+  border-color: rgba(125, 211, 252, 0.42);
+  background: linear-gradient(180deg, rgba(56, 189, 248, 0.13), rgba(14, 116, 144, 0.08));
+  color: #e7f7ff;
+  box-shadow: 0 5px 16px rgba(2, 132, 199, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+  transform: translateY(-1px);
+}
+
+.photo-upload-button:active {
+  transform: translateY(0);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.2);
+}
+
+.photo-upload-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+.photo-upload-button:has(input:focus-visible) {
+  outline: 3px solid rgba(56, 189, 248, 0.35);
+  outline-offset: 3px;
+  border-color: #38bdf8;
+}
+
+.photo-upload-button:has(input:disabled) {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.photo-drop-overlay {
+  position: fixed;
+  inset: 1rem;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  border: 2px dashed rgba(125, 211, 252, 0.85);
+  border-radius: 24px;
+  background: rgba(7, 19, 26, 0.88);
+  box-shadow: inset 0 0 80px rgba(14, 116, 144, 0.2), 0 20px 70px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.photo-drop-overlay > div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 2rem;
+  color: #f0f9ff;
+  text-align: center;
+}
+
+.photo-drop-overlay svg {
+  width: 48px;
+  height: 48px;
+  margin-bottom: 0.3rem;
+  fill: none;
+  stroke: #7dd3fc;
+  stroke-width: 1.7;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.photo-drop-overlay strong {
+  font-size: clamp(1.1rem, 3vw, 1.4rem);
+}
+
+.photo-drop-overlay span {
+  color: #a8c4d8;
+  font-size: 0.85rem;
+}
+
+.composer textarea {
+  resize: none;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 0.85rem 1rem;
+  background: rgba(255, 255, 255, 0.04);
+  color: #e8edf5;
+  font: inherit;
+  font-size: 0.95rem;
+  transition: border-color 0.2s, background 0.2s;
+  outline: none;
+}
+
+.composer textarea:focus {
+  border-color: rgba(255, 138, 61, 0.5);
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.composer textarea::placeholder {
+  color: rgba(255, 255, 255, 0.3);
+}
+
+.composer button {
+  align-self: end;
+  padding: 0.8rem 1.4rem;
+  border: none;
+  background: linear-gradient(135deg, #ff8a3d, #ff5f6d);
+  color: #140d08;
+  font-weight: 700;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+  box-shadow: 0 4px 14px rgba(255, 95, 109, 0.35);
+}
+
+.composer button:not(:disabled):hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(255, 95, 109, 0.45);
+}
+
+.composer button:not(:disabled):active {
+  transform: translateY(0);
+}
+
+.composer button:disabled,
+.composer textarea:disabled,
+.ghost-button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Responsive ───────────────────────────────────── */
+
+@media (max-width: 640px) {
+  .top-bar {
+    flex-wrap: wrap;
+  }
+
+  .message {
+    max-width: 92%;
+  }
+
+  .mechanic-card {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .mechanic-card a {
+    text-align: center;
+  }
+
+  .composer {
+    grid-template-columns: 1fr;
+  }
+
+  .photo-upload-button {
+    justify-self: start;
+  }
+
+  .location-consent,
+  .consent-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .vehicle-fields {
+    grid-template-columns: 1fr;
+  }
+}

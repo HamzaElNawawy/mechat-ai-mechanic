@@ -1,0 +1,11 @@
+{
+  "name": "mechanic-chatbot",
+  "private": true,
+  "scripts": {
+    "install:all": "npm install --prefix backend && npm install --prefix frontend",
+    "dev": "cmd /c start-dev.bat",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "test": "npm test --prefix backend && npm run lint --prefix frontend && npm run build --prefix frontend"
+  }
+}

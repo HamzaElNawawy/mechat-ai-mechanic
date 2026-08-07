@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">MeChat mechanic chat icon</title>
+  <defs>
+    <linearGradient id="bubble" x1="12" y1="12" x2="52" y2="50" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#ff9b45"/>
+      <stop offset="1" stop-color="#ff5f6d"/>
+    </linearGradient>
+  </defs>
+  <rect x="3" y="3" width="58" height="58" rx="17" fill="#121a23"/>
+  <path d="M15 13h34a8 8 0 0 1 8 8v20a8 8 0 0 1-8 8H31l-11 8v-8h-5a8 8 0 0 1-8-8V21a8 8 0 0 1 8-8Z" fill="url(#bubble)"/>
+  <g transform="translate(-1 -1)" fill="none" stroke="#fff" stroke-width="4" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M43.5 18.5a8.5 8.5 0 0 0-10 11.8L23.2 40.6"/>
+    <path d="m43.5 18.5-5.5 5.5 1.2 4.3 4.3 1.2L49 24"/>
+    <circle cx="20.7" cy="43.1" r="3.5"/>
+  </g>
+</svg>
