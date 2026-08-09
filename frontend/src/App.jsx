@@ -66,7 +66,7 @@ function App() {
         setSessionId(data.sessionId);
         setMessages([]);
       } catch (bootError) {
-        setError("Could not connect to the mechanic assistant. Is the backend running?");
+        setError("Could not connect to the mechanic assistant. Please try again later.");
         console.error(bootError);
       }
     }
