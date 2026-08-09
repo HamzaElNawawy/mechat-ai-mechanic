@@ -22,10 +22,10 @@ test("trims messages and rejects oversized input", () => {
 });
 
 test("validates and normalizes vehicle details", () => {
-  assert.deepEqual(validateVehicle({ year: "2018", makeModel: "  Toyota   Corolla " }).value, {
+  assert.deepEqual(validateVehicle({ year: "2020", makeModel: "  Toyota   Corolla " }).value, {
     year: 2018,
     makeModel: "Toyota Corolla",
   });
   assert.match(validateVehicle({ year: 1800, makeModel: "Ford" }).error, /year/i);
-  assert.match(validateVehicle({ year: 2020, makeModel: "<script>" }).error, /characters/i);
+  assert.match(validateVehicle({ year: 2026, makeModel: "<script>" }).error, /characters/i);
 });
