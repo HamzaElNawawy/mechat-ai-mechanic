@@ -21,3 +21,16 @@ test("expires inactive sessions", () => {
   store.cleanupExpiredSessions(session.lastActiveAt + config.sessionTtlMs + 1);
   assert.equal(store.getSession(session.id), null);
 });
+
+test("limits additional automotive reminders and jokes within a session", () => {
+  const session = store.createSession();
+  assert.equal(store.getAdditionalAutomotiveResponseStyle(session), "reminder");
+  store.recordAdditionalAutomotiveResponse(session, "reminder");
+  assert.equal(store.getAdditionalAutomotiveResponseStyle(session), "joke");
+  store.recordAdditionalAutomotiveResponse(session, "joke");
+  assert.equal(store.getAdditionalAutomotiveResponseStyle(session), "joke");
+  store.recordAdditionalAutomotiveResponse(session, "joke");
+  assert.equal(store.getAdditionalAutomotiveResponseStyle(session), "brief");
+  assert.equal(session.additionalAutomotiveCount, 3);
+  assert.equal(session.secondaryJokeCount, 2);
+});

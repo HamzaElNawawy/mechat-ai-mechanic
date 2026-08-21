@@ -34,6 +34,10 @@ test("recognizes varied brake, steering, fuel, and overheating wording", () => {
   assert.equal(assessImmediateDanger("My steering is gone")?.reason, "steering_failure");
   assert.equal(assessImmediateDanger("Petrol is dripping under the car")?.reason, "fuel_leak");
   assert.equal(assessImmediateDanger("The temperature needle is maxed out")?.reason, "overheating");
+  const arabicFire = assessImmediateDanger("في نار طالعة من محرك السيارة");
+  assert.equal(arabicFire?.reason, "fire_or_smoke");
+  assert.match(arabicFire?.message, /توقف/);
+  assert.equal(assessImmediateDanger("الفرامل مش شغالة")?.reason, "brake_failure");
 });
 
 test("does not trigger on a locally negated symptom", () => {

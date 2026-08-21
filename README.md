@@ -7,7 +7,7 @@
   ![Node.js](https://img.shields.io/badge/Node.js-18%2B-339933?logo=node.js&logoColor=white)
   ![React](https://img.shields.io/badge/React-19-61DAFB?logo=react&logoColor=111827)
   ![Groq](https://img.shields.io/badge/Groq-AI-F55036)
-  ![Tests](https://img.shields.io/badge/tests-27%20passing-22c55e)
+  ![Tests](https://img.shields.io/badge/tests-33%20passing-22c55e)
   ![License](https://img.shields.io/badge/license-MIT-64748b)
 </div>
 
@@ -87,16 +87,17 @@ MeChat helps drivers describe vehicle symptoms, checks for immediate danger befo
 | AI safety | Deterministic emergency rules run before model advice, with a second structured semantic triage layer |
 | Reliable AI output | Strict JSON Schema responses plus server-side semantic validation and safety overrides |
 | Better diagnosis | Vehicle year and make/model are collected after emergency triage and included in later reasoning |
-| Multimodal input | Drag-and-drop JPEG, PNG, and WebP analysis with MIME, size, and file-signature validation |
-| Privacy | Photos are not retained, GPS requires explicit consent, and coordinates are isolated from normal chat |
+| Multimodal input | Drag-and-drop photos plus microphone transcription with MIME, size, and file-signature validation |
+| Multilingual UX | Automatic English/Arabic response selection, RTL messages, Arabic emergency phrases, and browser read-aloud |
+| Privacy | Photos and audio are not retained, GPS requires explicit consent, and coordinates are isolated from normal chat |
 | Production thinking | Rate limits, CORS allowlisting, timeouts, retries, caching, bounded sessions, and rolling summaries |
-| Verification | 27 automated backend tests plus frontend linting and production-build checks |
+| Verification | 33 automated backend tests plus frontend linting and production-build checks |
 
 ## Tech stack
 
-- **Frontend:** React 19, Vite, responsive CSS, accessible file input and full-page drag-and-drop
+- **Frontend:** React 19, Vite, responsive CSS, full-page photo drag-and-drop, microphone capture, RTL rendering, and browser speech synthesis
 - **Backend:** Node.js, Express 5, layered service architecture
-- **AI:** Groq Chat Completions with GPT-OSS structured outputs and Qwen vision analysis
+- **AI:** Groq Chat Completions with GPT-OSS structured outputs, Qwen vision analysis, and Whisper speech transcription
 - **Maps:** OpenStreetMap Overpass and Nominatim, with an honest Google Maps search fallback
 - **Testing:** Node's built-in test runner and Oxlint
 
@@ -132,31 +133,51 @@ npm test
 - Layered emergency checks: flexible deterministic rules plus structured semantic classification
 - Required vehicle year and make/model intake after the emergency check and before AI advice
 - JPEG, PNG, and WebP photo evidence analyzed by Groq Qwen 3.6 Vision
+- Microphone input transcribed by Groq Whisper Large V3 Turbo with a transcript preview before sending
+- Automatic English/Arabic conversation responses and interface labels, Arabic-aware Whisper hints, deterministic Arabic emergency checks, and RTL rendering
+- Read-aloud assistant responses through the browser's built-in speech synthesis voices
 - Explicit location consent with a “Not now” option
 - Nearby repair-shop listings through OpenStreetMap Overpass and Nominatim
 - Honest Maps search fallback when no listings can be verified
 - Expiring, size-limited sessions with bounded context and a rolling summary
 - Request size limits, per-IP rate limiting, CORS allowlisting, and security headers
 - Timeouts, retries, caching, and `429`/`5xx` handling for external services
+- Three-category intent routing for vehicle requests, supported conversation, and out-of-scope requests
+- Server-controlled confidentiality boundaries for credentials, private data, prompt injection, and hidden configuration
+- Dedicated automotive-information responses for comparisons, buying advice, and specifications
+- Category-aware secondary responses: natural supported conversation, a reminder on every out-of-scope answer, and first-use reminder plus at most two playful reminder variations for additional automotive information
 - Automated backend safety, validation, session, and API tests
 
 ## Safety and AI response flow
 
 ```mermaid
 flowchart TD
-    A["User describes a symptom or attaches a photo"] --> B["Validate message, session, and optional image"]
+    A["User types, speaks, or attaches a photo"] --> B["Validate message, session, and optional media"]
+    A --> W{"Voice input?"}
+    W -->|"Yes"| WT["Validate audio and transcribe with Whisper"]
+    WT --> WP["Preview editable transcript in composer"]
+    WP --> A
     B --> Q{"Photo attached?"}
     Q -->|"Yes"| R["Qwen 3.6 extracts visible evidence and safety category"]
-    R --> C
+    R -->|"Emergency detected"| D
+    R -->|"No emergency"| E
     Q -->|"No"| C
     C["Deterministic emergency rules"]
     C -->|"Emergency detected"| D["Server-controlled safety instructions"]
     D --> L["Offer optional mechanic location"]
 
-    C -->|"No deterministic match"| E{"Vehicle profile already stored?"}
-    E -->|"No"| F["Structured semantic emergency classifier"]
+    C -->|"No deterministic match"| F["Structured safety, category, intent, and policy classifier"]
     F -->|"Emergency detected"| D
-    F -->|"No emergency"| G["Ask for year and make/model"]
+    F -->|"Confidential or unsafe request"| X["Server-controlled boundary response"]
+    F -->|"Out of scope"| U["Brief general answer using the session response style"]
+    U --> A
+    F -->|"Supported conversation"| S["Brief constrained response using the session response style"]
+    S --> A
+    F -->|"Vehicle-related"| T{"Automotive intent"}
+    T -->|"Maintenance, comparison, buying, specifications, or general"| V["Brief automotive information using the session response style"]
+    V --> A
+    T -->|"Troubleshooting, maintenance, or driving safety"| E{"Vehicle profile already stored?"}
+    E -->|"No"| G["Ask for year and make/model"]
     G --> H["Validate and store vehicle profile"]
     H --> I["Groq diagnosis with vehicle context"]
     E -->|"Yes"| I
@@ -172,6 +193,8 @@ flowchart TD
     N -->|"Yes"| O["Validate coordinates"]
     O --> P["Find nearby mechanic listings"]
 ```
+
+The text router returns one of three top-level categories: `vehicle_related`, `supported_conversation`, or `out_of_scope`. It also selects English or Arabic from the current request, stores that preference only for the active in-memory session, and instructs later model stages to answer in that language. Troubleshooting, driving-safety, and photo-analysis requests remain the primary workflow. Greetings, identity questions, courtesy, wellbeing, and emotional support receive natural answers under 45 words without a purpose reminder; most use one sentence, while safety-sensitive wellbeing replies may use two. Every out-of-scope answer begins with the troubleshooting-purpose reminder and never uses humor. The first additional-automotive request begins with the reminder; its next two safe responses may begin with a playful variation of that reminder, and later responses stay brief. These variations joke only about briefly stepping away from the diagnostic bay—not about unrelated subjects or the user. Illness, distress, emergencies, privacy, and security requests never receive jokes. A separate policy decision can override any normal route before an answer is generated. API keys and other secrets remain backend-only and are never included in model input.
 
 The model returns these fields:
 
@@ -194,9 +217,13 @@ Mechanic location is offered only for deterministic emergencies or when `diagnos
 ```mermaid
 flowchart LR
     subgraph Browser["Browser — React + Vite"]
-        UI["Chat and vehicle-intake UI"]
+        UI["Chat, voice, read-aloud, and vehicle-intake UI"]
+        MIC["Microphone capture and transcript preview"]
+        TTS["Browser speech synthesis"]
         CLIENT["API client"]
         GPS["Browser geolocation — explicit consent only"]
+        UI --> MIC
+        UI --> TTS
         UI --> CLIENT
         UI --> GPS
     end
@@ -212,6 +239,7 @@ flowchart LR
         SAFETY["Deterministic safety rules"]
         GROQ_SERVICE["GPT-OSS 20B triage and GPT-OSS 120B diagnosis"]
         VISION_SERVICE["Qwen 3.6 visual evidence extraction"]
+        SPEECH_SERVICE["Whisper multilingual transcription"]
         SESSIONS["In-memory sessions, TTL, summaries, vehicle profile"]
         MECHANICS["Mechanic search, cache, retry, throttle"]
     end
@@ -219,6 +247,7 @@ flowchart LR
     subgraph External["External services"]
         GROQ["Groq Chat Completions API"]
         QWEN["Groq Qwen 3.6 Vision"]
+        WHISPER["Groq Whisper Large V3 Turbo"]
         OVERPASS["OpenStreetMap Overpass"]
         NOMINATIM["OpenStreetMap Nominatim fallback"]
         MAPS["Google Maps search fallback"]
@@ -231,9 +260,11 @@ flowchart LR
     ROUTES <--> SESSIONS
     ROUTES --> GROQ_SERVICE
     ROUTES --> VISION_SERVICE
+    ROUTES --> SPEECH_SERVICE
     ROUTES --> MECHANICS
     GROQ_SERVICE --> GROQ
     VISION_SERVICE --> QWEN
+    SPEECH_SERVICE --> WHISPER
     MECHANICS --> OVERPASS
     MECHANICS --> NOMINATIM
     MECHANICS -.->|"No verified listings"| MAPS
@@ -245,6 +276,7 @@ flowchart LR
 |---|---|
 | `POST /api/chat/new` | Create an expiring in-memory session |
 | `POST /api/chat` | Validate and process a symptom without attaching GPS |
+| `POST /api/chat/transcribe` | Validate microphone audio and return an editable English/Arabic transcript |
 | `POST /api/chat/vehicle` | Store year and make/model, then begin vehicle-aware diagnosis |
 | `POST /api/chat/photo` | Validate and analyze a consented vehicle photo without storing the image |
 | `POST /api/chat/refer` | Accept consented coordinates and search for mechanics |
@@ -256,6 +288,9 @@ flowchart LR
 - Sessions expire after the configured TTL and are lost when the backend restarts.
 - GPS coordinates are not stored in the session or sent with ordinary chat messages.
 - Uploaded photos are sent to Groq for analysis but are not stored in backend sessions; only text observations enter chat context.
+- Recorded audio is sent to Groq only for transcription, is not written to disk or chat history, and becomes conversation data only if the user sends the returned transcript.
+- The detected English/Arabic preference is kept only in the current in-memory session.
+- Read-aloud output uses the browser's speech synthesis engine; the backend does not generate or store that audio.
 - Mechanic lookup results are cached temporarily in backend memory.
 - The Groq API key remains server-side in `backend/.env`.
 
@@ -307,8 +342,10 @@ All backend variables belong in `backend/.env`.
 | `GROQ_TRIAGE_MODEL` | `openai/gpt-oss-20b` | Fast model for semantic emergency classification |
 | `GROQ_DIAGNOSIS_MODEL` | `openai/gpt-oss-120b` | High-capability model for vehicle-aware diagnosis |
 | `GROQ_VISION_MODEL` | `qwen/qwen3.6-27b` | Multimodal model used only for photo evidence extraction |
+| `GROQ_SPEECH_MODEL` | `whisper-large-v3-turbo` | Multilingual microphone transcription model |
 | `GROQ_MAX_TOKENS` | `700` | Maximum completion size |
 | `MAX_IMAGE_BYTES` | `4194304` | Maximum decoded photo size (4 MB) |
+| `MAX_AUDIO_BYTES` | `4194304` | Maximum decoded microphone recording size (4 MB) |
 | `PORT` | `5000` | Backend port |
 | `MAX_TURNS` | `5` | Recent conversation turns retained verbatim |
 | `MAX_SESSION_TURNS` | `20` | Maximum user messages per session |
@@ -368,6 +405,17 @@ For a non-emergency first symptom, the API returns `needs_vehicle_info` without 
 
 The vehicle is stored on the session and included in this and all later Groq diagnostic requests. Engine, trim, transmission, or mileage are requested later only when they materially affect the diagnosis.
 
+### `POST /api/chat/transcribe`
+
+```json
+{
+  "sessionId": "uuid",
+  "audioDataUrl": "data:audio/webm;base64,..."
+}
+```
+
+Returns an English or Arabic transcript and detected language. New sessions begin in automatic speech-language mode without an English prompt; after Arabic is established in the conversation, Whisper receives an Arabic hint for better dialect accuracy. The frontend places the transcript in the composer so the user can review or edit it before sending. The endpoint does not add a chat turn and the backend does not retain the recording.
+
 ### `POST /api/chat/refer`
 
 ```json
@@ -406,7 +454,7 @@ npm run lint
 npm run build
 ```
 
-The backend tests do not call Groq or public map APIs. They cover emergency triage, vehicle-intake gating, strict and vision response validation, image type/signature checks, invalid coordinates, zero coordinates, session expiration, rolling history, fallback labeling, and referral consent endpoints.
+The backend tests do not call Groq or public map APIs. They cover English and Arabic emergency triage, vehicle-intake gating, strict and vision response validation, image and audio type/signature checks, mocked voice transcription, invalid coordinates, zero coordinates, session expiration, rolling history, fallback labeling, and referral consent endpoints.
 
 ## Production notes
 

@@ -3,7 +3,10 @@ const sessionStore = require("../services/sessionStore");
 const groqService = require("../services/groqService");
 const mechanicService = require("../services/mechanicService");
 const safetyService = require("../services/safetyService");
+const conversationService = require("../services/conversationService");
+const { validateAudioDataUrl } = require("../services/audioValidation");
 const { validateImageDataUrl } = require("../services/imageValidation");
+const { chooseLanguage, detectLanguage } = require("../services/languageService");
 const {
   validateLocation,
   validateMessage,
@@ -70,26 +73,136 @@ router.post("/", async (req, res) => {
   }
 
   const message = messageResult.value;
+  let responseLanguage = detectLanguage(message);
+
   sessionStore.setBusy(session, true);
 
   try {
     let immediateDanger = safetyService.assessImmediateDanger(message);
+    let messageClassification = null;
 
-    if (!immediateDanger && !session.vehicle) {
-      const semanticCategory = await groqService.classifyImmediateDanger(message);
-      immediateDanger = safetyService.buildDangerResponse(semanticCategory);
+    if (!immediateDanger) {
+      const policyReason = conversationService.assessPolicyBoundary(message);
+      if (policyReason) {
+        sessionStore.setLanguage(session, responseLanguage);
+        const reply = conversationService.getPolicyReply(policyReason, responseLanguage);
+        return res.json({
+          sessionId: session.id,
+          reply,
+          status: "active",
+          mechanics: null,
+        });
+      }
+    }
+
+    if (!immediateDanger) {
+      messageClassification = await groqService.classifyMessage(message);
+      responseLanguage = messageClassification.responseLanguage;
+      sessionStore.setLanguage(session, responseLanguage);
+      immediateDanger = safetyService.buildDangerResponse(
+        messageClassification.safetyCategory,
+        responseLanguage
+      );
     }
 
     if (immediateDanger) {
+      sessionStore.setLanguage(session, responseLanguage);
       sessionStore.addMessage(session, "user", message);
       sessionStore.addMessage(session, "assistant", immediateDanger.message);
       sessionStore.setPendingMechanicReferral(session, true);
       return res.json(needsLocationResponse(session, immediateDanger.message, immediateDanger));
     }
 
+    if (messageClassification.policyAction !== "allow") {
+      const reply = conversationService.getPolicyReply(
+        messageClassification.policyReason,
+        responseLanguage
+      );
+      sessionStore.addMessage(session, "user", message);
+      sessionStore.addMessage(session, "assistant", reply);
+      return res.json({
+        sessionId: session.id,
+        reply,
+        status: "active",
+        mechanics: null,
+      });
+    }
+
+    if (messageClassification.category === "out_of_scope") {
+      const responseStyle = "reminder";
+      const generatedReply = await groqService.getGeneralInformationReply(
+        message,
+        responseStyle,
+        responseLanguage
+      );
+      const reply = conversationService.formatOffPurposeReply(
+        generatedReply,
+        responseStyle,
+        responseLanguage
+      );
+      sessionStore.addMessage(session, "user", message);
+      sessionStore.addMessage(session, "assistant", reply);
+      return res.json({
+        sessionId: session.id,
+        reply,
+        status: "active",
+        mechanics: null,
+      });
+    }
+
+    if (messageClassification.category === "supported_conversation") {
+      const reply = await groqService.getSupportedConversationReply(
+        message,
+        messageClassification,
+        "brief"
+      );
+      sessionStore.addMessage(session, "user", message);
+      sessionStore.addMessage(session, "assistant", reply);
+      return res.json({
+        sessionId: session.id,
+        reply,
+        status: "active",
+        mechanics: null,
+      });
+    }
+
+    if (
+      [
+        "maintenance",
+        "vehicle_comparison",
+        "buying_advice",
+        "specifications",
+        "other_automotive",
+      ].includes(messageClassification.intent)
+    ) {
+      const responseStyle = sessionStore.getAdditionalAutomotiveResponseStyle(session);
+      const generatedReply = await groqService.getAutomotiveInformationReply(
+        message,
+        messageClassification,
+        responseStyle
+      );
+      const reply = conversationService.formatOffPurposeReply(
+        generatedReply,
+        responseStyle,
+        responseLanguage
+      );
+      sessionStore.recordAdditionalAutomotiveResponse(session, responseStyle);
+      sessionStore.addMessage(session, "user", message);
+      sessionStore.addMessage(session, "assistant", reply);
+      return res.json({
+        sessionId: session.id,
+        reply,
+        status: "active",
+        mechanics: null,
+      });
+    }
+
     if (!session.vehicle) {
-      const reply =
-        "Before I diagnose the problem or suggest checks, what is the vehicle year and make/model?";
+      const reply = chooseLanguage(
+        responseLanguage,
+        "Before I diagnose the problem or suggest checks, what is the vehicle year and make/model?",
+        "قبل أن أشخّص المشكلة أو أقترح فحوصات، ما سنة السيارة وما الشركة المصنّعة والطراز؟"
+      );
       sessionStore.setPendingDiagnosticMessage(session, message);
       return res.json({
         sessionId: session.id,
@@ -99,7 +212,11 @@ router.post("/", async (req, res) => {
       });
     }
 
-    const decision = await groqService.getMechanicReply(session, message);
+    const decision = await groqService.getMechanicReply(
+      session,
+      message,
+      responseLanguage
+    );
     sessionStore.addMessage(session, "user", message);
     sessionStore.addMessage(session, "assistant", decision.reply);
 
@@ -117,13 +234,23 @@ router.post("/", async (req, res) => {
       action: decision.action,
     });
   } catch (error) {
-    console.error(error);
     if (error.message === "GROQ_API_KEY is not configured") {
       return res.status(500).json({ error: "Groq API key is missing on the server" });
     }
     if (error.status === 429) {
       return res.status(503).json({ error: "The AI service is busy. Please try again shortly." });
     }
+    if (error.status === 401 || error.status === 403) {
+      return res.status(502).json({
+        error: "Groq rejected the server credentials. Check GROQ_API_KEY in backend/.env.",
+      });
+    }
+    if (error.name === "APIConnectionError" || error.name === "APIConnectionTimeoutError") {
+      return res.status(504).json({
+        error: "The backend could not reach Groq. Check the internet connection and try again.",
+      });
+    }
+    console.error(error);
     return res.status(502).json({ error: "The mechanic assistant is temporarily unavailable" });
   } finally {
     sessionStore.setBusy(session, false);
@@ -140,6 +267,60 @@ function formatVisionEvidence(caption, analysis) {
     .filter(Boolean)
     .join("\n");
 }
+
+router.post("/transcribe", async (req, res) => {
+  const session = getSessionFromRequest(req, res);
+  if (!session) return undefined;
+  if (session.busy) return busyResponse(res);
+  if (session.pendingMechanicReferral || session.pendingDiagnosticMessage) {
+    return res.status(409).json({
+      error: "Complete the current location or vehicle-information step before recording",
+    });
+  }
+
+  const audioResult = validateAudioDataUrl(req.body?.audioDataUrl);
+  if (audioResult.error) return res.status(400).json({ error: audioResult.error });
+
+  sessionStore.setBusy(session, true);
+  try {
+    const transcription = await groqService.transcribeAudio(audioResult.value, session.language);
+    const messageResult = validateMessage(transcription.text);
+    if (messageResult.error) return res.status(400).json({ error: messageResult.error });
+    sessionStore.setLanguage(session, transcription.language);
+    return res.json({
+      sessionId: session.id,
+      transcript: messageResult.value,
+      language: transcription.language,
+    });
+  } catch (error) {
+    if (error.message === "GROQ_API_KEY is not configured") {
+      return res.status(500).json({ error: "Groq API key is missing on the server" });
+    }
+    if (error.status === 429) {
+      return res.status(503).json({ error: "Voice transcription is busy. Try again shortly." });
+    }
+    if (error.status === 413) {
+      return res.status(413).json({ error: "The voice recording is too large. Please record a shorter message." });
+    }
+    if (error.status === 400 || error.status === 422) {
+      return res.status(422).json({
+        error: "The recording was too short, unclear, or in an unsupported browser format. Please record for at least one second and try again.",
+      });
+    }
+    if (error.name === "APIConnectionError" || error.name === "APIConnectionTimeoutError") {
+      return res.status(504).json({
+        error: "The transcription service could not be reached. Check your connection and try again.",
+      });
+    }
+    if (/did not detect speech/i.test(error.message)) {
+      return res.status(422).json({ error: "No clear speech was detected. Please try again." });
+    }
+    console.error(error);
+    return res.status(502).json({ error: "The voice recording could not be transcribed" });
+  } finally {
+    sessionStore.setBusy(session, false);
+  }
+});
 
 router.post("/photo", async (req, res) => {
   const session = getSessionFromRequest(req, res);
@@ -174,6 +355,9 @@ router.post("/photo", async (req, res) => {
     caption = messageResult.value;
   }
 
+  const responseLanguage = caption ? detectLanguage(caption) : session.language;
+  sessionStore.setLanguage(session, responseLanguage);
+
   sessionStore.setBusy(session, true);
   try {
     let immediateDanger = caption ? safetyService.assessImmediateDanger(caption) : null;
@@ -185,8 +369,15 @@ router.post("/photo", async (req, res) => {
       return res.json(needsLocationResponse(session, immediateDanger.message, immediateDanger));
     }
 
-    const analysis = await groqService.analyzeVehiclePhoto(imageResult.value.dataUrl, caption);
-    immediateDanger = safetyService.buildDangerResponse(analysis.safetyCategory);
+    const analysis = await groqService.analyzeVehiclePhoto(
+      imageResult.value.dataUrl,
+      caption,
+      responseLanguage
+    );
+    immediateDanger = safetyService.buildDangerResponse(
+      analysis.safetyCategory,
+      responseLanguage
+    );
     if (immediateDanger) {
       const userEntry = formatVisionEvidence(caption, analysis);
       sessionStore.addMessage(session, "user", userEntry);
@@ -199,8 +390,11 @@ router.post("/photo", async (req, res) => {
     }
 
     if (!analysis.imageRelevant) {
-      const reply =
-        "I could not identify useful vehicle-related evidence in that photo. Upload a clear image of the dashboard, warning light, leak, tire, damage, or relevant component, and include a short description.";
+      const reply = chooseLanguage(
+        responseLanguage,
+        "I could not identify useful vehicle-related evidence in that photo. Upload a clear image of the dashboard, warning light, leak, tire, damage, or relevant component, and include a short description.",
+        "لم أتمكن من تحديد دليل مفيد متعلق بالسيارة في هذه الصورة. ارفع صورة واضحة للوحة العدادات أو لمبة التحذير أو التسريب أو الإطار أو التلف أو الجزء المعني، وأضف وصفًا قصيرًا."
+      );
       sessionStore.addMessage(session, "user", caption || "Uploaded a photo.");
       sessionStore.addMessage(session, "assistant", reply);
       return res.json({
@@ -215,7 +409,11 @@ router.post("/photo", async (req, res) => {
     const evidence = formatVisionEvidence(caption, analysis);
     if (!session.vehicle) {
       const observations = analysis.observations.join("; ");
-      const reply = `Photo received${observations ? `. Visible details: ${observations}` : ""}. Before I diagnose it, what is the vehicle year and make/model?`;
+      const reply = chooseLanguage(
+        responseLanguage,
+        `Photo received${observations ? `. Visible details: ${observations}` : ""}. Before I diagnose it, what is the vehicle year and make/model?`,
+        `تم استلام الصورة${observations ? `. التفاصيل الظاهرة: ${observations}` : ""}. قبل التشخيص، ما سنة السيارة وما الشركة المصنّعة والطراز؟`
+      );
       sessionStore.setPendingDiagnosticMessage(session, evidence);
       return res.json({
         sessionId: session.id,
@@ -226,7 +424,11 @@ router.post("/photo", async (req, res) => {
       });
     }
 
-    const decision = await groqService.getMechanicReply(session, evidence);
+    const decision = await groqService.getMechanicReply(
+      session,
+      evidence,
+      responseLanguage
+    );
     sessionStore.addMessage(session, "user", evidence);
     sessionStore.addMessage(session, "assistant", decision.reply);
 
@@ -277,7 +479,11 @@ router.post("/vehicle", async (req, res) => {
   sessionStore.setBusy(session, true);
 
   try {
-    const decision = await groqService.getMechanicReply(session, diagnosticMessage);
+    const decision = await groqService.getMechanicReply(
+      session,
+      diagnosticMessage,
+      session.language
+    );
     sessionStore.addMessage(session, "user", diagnosticMessage);
     sessionStore.addMessage(session, "assistant", decision.reply);
     sessionStore.setPendingDiagnosticMessage(session, null);
@@ -327,7 +533,7 @@ router.post("/refer", async (req, res) => {
       locationResult.value.lat,
       locationResult.value.lng
     );
-    const reply = mechanicService.buildReferralMessage(mechanics);
+    const reply = mechanicService.buildReferralMessage(mechanics, session.language);
     sessionStore.addMessage(session, "assistant", reply);
     sessionStore.markReferred(session);
 
@@ -352,8 +558,11 @@ router.post("/continue", (req, res) => {
     return res.status(409).json({ error: "No location request is pending" });
   }
 
-  const reply =
-    "Location was not shared. You can continue asking questions, but do not drive if the issue affects brakes, steering, overheating, fuel, fire, or smoke.";
+  const reply = chooseLanguage(
+    session.language,
+    "Location was not shared. You can continue asking questions, but do not drive if the issue affects brakes, steering, overheating, fuel, fire, or smoke.",
+    "لم تتم مشاركة الموقع. يمكنك متابعة طرح الأسئلة، لكن لا تقُد السيارة إذا كانت المشكلة تؤثر في الفرامل أو التوجيه أو الحرارة أو الوقود أو يوجد حريق أو دخان."
+  );
   sessionStore.setPendingMechanicReferral(session, false);
   sessionStore.addMessage(session, "assistant", reply);
   return res.json({ sessionId: session.id, reply, status: "active", mechanics: null });
