@@ -10,8 +10,10 @@ module.exports = {
   groqDiagnosisModel:
     process.env.GROQ_DIAGNOSIS_MODEL || process.env.GROQ_MODEL || "openai/gpt-oss-120b",
   groqVisionModel: process.env.GROQ_VISION_MODEL || "qwen/qwen3.6-27b",
+  groqSpeechModel: process.env.GROQ_SPEECH_MODEL || "whisper-large-v3-turbo",
   groqMaxTokens: numberFromEnv("GROQ_MAX_TOKENS", 700, { max: 4000 }),
   maxImageBytes: numberFromEnv("MAX_IMAGE_BYTES", 4194304, { max: 10485760 }),
+  maxAudioBytes: numberFromEnv("MAX_AUDIO_BYTES", 4194304, { max: 10485760 }),
   maxTurns: numberFromEnv("MAX_TURNS", 5, { max: 20 }),
   maxSessionTurns: numberFromEnv("MAX_SESSION_TURNS", 20, { max: 100 }),
   maxMessageChars: numberFromEnv("MAX_MESSAGE_CHARS", 2000, { max: 10000 }),

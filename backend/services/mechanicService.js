@@ -242,12 +242,16 @@ async function findNearestMechanics(lat, lng) {
   }
 }
 
-function buildReferralMessage(mechanics) {
+function buildReferralMessage(mechanics, language = "english") {
   if (mechanics.every((item) => item.resultType === "map_search")) {
-    return "I could not verify nearby repair-shop listings right now. Use the map search below to review available businesses. Check ratings, services, and availability before visiting.";
+    return language === "arabic"
+      ? "لم أتمكن من التحقق من قوائم ورش الإصلاح القريبة الآن. استخدم بحث الخرائط أدناه لمراجعة الأماكن المتاحة، وتحقق من التقييمات والخدمات ومواعيد العمل قبل الزيارة."
+      : "I could not verify nearby repair-shop listings right now. Use the map search below to review available businesses. Check ratings, services, and availability before visiting.";
   }
 
-  return "These are nearby repair-shop listings from OpenStreetMap. Confirm services and availability before visiting. If the issue affects braking, steering, overheating, fuel, fire, or smoke, do not drive; call roadside assistance.";
+  return language === "arabic"
+    ? "هذه قوائم لورش إصلاح قريبة من OpenStreetMap. تأكد من الخدمات ومواعيد العمل قبل الزيارة. إذا كانت المشكلة تؤثر في الفرامل أو التوجيه أو الحرارة أو الوقود أو يوجد حريق أو دخان، فلا تقُد السيارة واتصل بالمساعدة على الطريق."
+    : "These are nearby repair-shop listings from OpenStreetMap. Confirm services and availability before visiting. If the issue affects braking, steering, overheating, fuel, fire, or smoke, do not drive; call roadside assistance.";
 }
 
 module.exports = {

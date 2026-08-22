@@ -36,6 +36,14 @@ export function sendPhotoMessage({ sessionId, message, imageDataUrl }) {
   });
 }
 
+export function transcribeVoice({ sessionId, audioDataUrl }) {
+  return request("/api/chat/transcribe", {
+    method: "POST",
+    timeoutMs: 45000,
+    body: JSON.stringify({ sessionId, audioDataUrl }),
+  });
+}
+
 export function submitVehicleInfo({ sessionId, year, makeModel }) {
   return request("/api/chat/vehicle", {
     method: "POST",

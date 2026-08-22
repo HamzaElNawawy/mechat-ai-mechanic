@@ -2,7 +2,8 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   parseDiagnosticReply,
-  parseSafetyClassification,
+  parseMessageClassification,
+  parseSupportedConversationReply,
   parseVisionAnalysis,
 } = require("../services/groqService");
 
@@ -64,15 +65,71 @@ test("rejects invalid or incomplete model output", () => {
   assert.throws(() => parseDiagnosticReply('{"message":"hello"}'), /invalid schema/);
 });
 
-test("parses only consistent semantic safety classifications", () => {
-  assert.equal(
-    parseSafetyClassification('{"isEmergency":true,"category":"fire_or_smoke"}'),
-    "fire_or_smoke"
+test("parses only consistent semantic message classifications", () => {
+  const emergency = {
+    isEmergency: true,
+    safetyCategory: "fire_or_smoke",
+    category: "vehicle_related",
+    intent: "troubleshooting",
+    policyAction: "allow",
+    policyReason: "none",
+    needsClarification: false,
+    responseLanguage: "arabic",
+  };
+  assert.deepEqual(
+    parseMessageClassification(JSON.stringify(emergency)),
+    {
+      safetyCategory: "fire_or_smoke",
+      category: "vehicle_related",
+      intent: "troubleshooting",
+      policyAction: "allow",
+      policyReason: "none",
+      needsClarification: false,
+      responseLanguage: "arabic",
+    }
   );
-  assert.equal(parseSafetyClassification('{"isEmergency":false,"category":"none"}'), null);
+
+  const deniedSecret = {
+    isEmergency: false,
+    safetyCategory: "none",
+    category: "supported_conversation",
+    intent: "capabilities",
+    policyAction: "deny",
+    policyReason: "secret_request",
+    needsClarification: false,
+    responseLanguage: "english",
+  };
+  assert.deepEqual(
+    parseMessageClassification(JSON.stringify(deniedSecret)),
+    {
+      safetyCategory: null,
+      category: "supported_conversation",
+      intent: "capabilities",
+      policyAction: "deny",
+      policyReason: "secret_request",
+      needsClarification: false,
+      responseLanguage: "english",
+    }
+  );
+
   assert.throws(
-    () => parseSafetyClassification('{"isEmergency":false,"category":"brake_failure"}'),
+    () =>
+      parseMessageClassification(
+        JSON.stringify({ ...deniedSecret, policyAction: "allow" })
+      ),
     /invalid schema/
+  );
+  assert.equal(
+    parseSupportedConversationReply('{"message":"My name is MeChat."}'),
+    "My name is MeChat."
+  );
+  assert.throws(
+    () =>
+      parseSupportedConversationReply(
+        '{"message":"This supported response is deliberately too long."}',
+        3
+      ),
+    /too long/
   );
 });
 

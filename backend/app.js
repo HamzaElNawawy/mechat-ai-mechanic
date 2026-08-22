@@ -27,6 +27,10 @@ app.use(
   "/api/chat/photo",
   express.json({ limit: Math.ceil((config.maxImageBytes * 4) / 3) + 200000 })
 );
+app.use(
+  "/api/chat/transcribe",
+  express.json({ limit: Math.ceil((config.maxAudioBytes * 4) / 3) + 200000 })
+);
 app.use(express.json({ limit: "16kb" }));
 
 app.use("/api", (req, res, next) => {

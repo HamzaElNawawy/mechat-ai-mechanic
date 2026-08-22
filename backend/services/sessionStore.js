@@ -30,8 +30,11 @@ function createSession() {
     pendingMechanicReferral: false,
     busy: false,
     turnCount: 0,
+    additionalAutomotiveCount: 0,
+    secondaryJokeCount: 0,
     summary: "",
     vehicle: null,
+    language: "auto",
     pendingDiagnosticMessage: null,
     createdAt: now,
     lastActiveAt: now,
@@ -104,6 +107,25 @@ function setPendingDiagnosticMessage(session, message) {
   session.lastActiveAt = Date.now();
 }
 
+function setLanguage(session, language) {
+  session.language = ["arabic", "english"].includes(language) ? language : "auto";
+  session.lastActiveAt = Date.now();
+}
+
+function getAdditionalAutomotiveResponseStyle(session) {
+  if ((session.additionalAutomotiveCount || 0) === 0) return "reminder";
+  if ((session.secondaryJokeCount || 0) < 2) return "joke";
+  return "brief";
+}
+
+function recordAdditionalAutomotiveResponse(session, style) {
+  session.additionalAutomotiveCount = (session.additionalAutomotiveCount || 0) + 1;
+  if (style === "joke") {
+    session.secondaryJokeCount = (session.secondaryJokeCount || 0) + 1;
+  }
+  session.lastActiveAt = Date.now();
+}
+
 function resetForTests() {
   sessions.clear();
 }
@@ -119,6 +141,9 @@ module.exports = {
   setBusy,
   setVehicle,
   setPendingDiagnosticMessage,
+  setLanguage,
+  getAdditionalAutomotiveResponseStyle,
+  recordAdditionalAutomotiveResponse,
   cleanupExpiredSessions,
   resetForTests,
 };
